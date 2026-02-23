@@ -2,6 +2,7 @@ import express from 'express';
 import twilio from 'twilio';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import rateLimit from 'express-rate-limit';
 
 dotenv.config();
 
@@ -9,6 +10,10 @@ const app = express();
 const allowedOrigins = [process.env.FRONTEND_URL, 'http://localhost:5173'].filter(Boolean);
 app.use(cors({ origin: allowedOrigins }));
 app.use(express.json());
+
+const alertLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 5, standardHeaders: true, legacyHeaders: false });
+const clearLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false });
+const pingLimiter = rateLimit({ windowMs: 60 * 1000, max: 120, standardHeaders: true, legacyHeaders: false });
 
 // In-memory location store (keyed by sessionId)
 // For production, use a database
@@ -32,7 +37,7 @@ function buildTrackingUrl(name, latitude, longitude, timestamp) {
 }
 
 // POST /api/alert — Send emergency SMS to all contacts
-app.post('/api/alert', async (req, res) => {
+app.post('/api/alert', alertLimiter, async (req, res) => {
   const { userName, contacts: rawContacts, latitude, longitude, triggerType } = req.body;
 
   if (!rawContacts?.length) {
@@ -95,7 +100,7 @@ app.post('/api/alert', async (req, res) => {
 });
 
 // POST /api/alert/clear — Send all-clear SMS
-app.post('/api/alert/clear', async (req, res) => {
+app.post('/api/alert/clear', clearLimiter, async (req, res) => {
   const { userName, contacts: rawContacts } = req.body;
 
   if (!rawContacts?.length) {
@@ -134,7 +139,7 @@ app.post('/api/alert/clear', async (req, res) => {
 });
 
 // POST /api/ping — Store latest location for a session
-app.post('/api/ping', (req, res) => {
+app.post('/api/ping', pingLimiter, (req, res) => {
   const { sessionId, latitude, longitude, timestamp } = req.body;
   if (sessionId) {
     locationStore.set(sessionId, { latitude, longitude, timestamp: timestamp || Date.now() });
