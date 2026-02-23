@@ -10,6 +10,12 @@ const app = express();
 const allowedOrigins = [process.env.FRONTEND_URL, 'http://localhost:5173'].filter(Boolean);
 app.use(cors({ origin: allowedOrigins }));
 app.use(express.json());
+app.use((_req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
 
 const alertLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 5, standardHeaders: true, legacyHeaders: false });
 const clearLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false });
@@ -207,11 +213,7 @@ app.get('/api/location/:sessionId', (req, res) => {
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({
-    ok: true,
-    twilio: !!twilioClient,
-    timestamp: new Date().toISOString(),
-  });
+  res.json({ ok: true, timestamp: new Date().toISOString() });
 });
 
 const PORT = process.env.PORT || 3001;
