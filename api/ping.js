@@ -1,12 +1,17 @@
 import { supabase } from './_lib/supabase.js';
 import { setCorsHeaders } from './_lib/cors.js';
 import { isRateLimited, getClientIp } from './_lib/rateLimit.js';
+import { isAuthorized } from './_lib/auth.js';
 
 export default async function handler(req, res) {
   setCorsHeaders(req, res);
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  if (!isAuthorized(req)) {
+    return res.status(401).json({ success: false, error: 'Unauthorized' });
+  }
 
   // 120 pings per minute per IP (one every ~30s is normal, this allows bursts)
   if (isRateLimited(getClientIp(req), 120, 60 * 1000)) {

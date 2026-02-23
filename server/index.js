@@ -15,6 +15,14 @@ const alertLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 5, standardHeade
 const clearLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false });
 const pingLimiter = rateLimit({ windowMs: 60 * 1000, max: 120, standardHeaders: true, legacyHeaders: false });
 
+function requireAuth(req, res, next) {
+  const secret = process.env.PATRONA_API_SECRET;
+  if (!secret) return next(); // Not configured — open in dev
+  const key = req.headers['x-api-key'] || req.query?.api_key;
+  if (key !== secret) return res.status(401).json({ success: false, error: 'Unauthorized' });
+  next();
+}
+
 // In-memory location store (keyed by sessionId)
 // For production, use a database
 const locationStore = new Map();
@@ -37,7 +45,7 @@ function buildTrackingUrl(name, latitude, longitude, timestamp) {
 }
 
 // POST /api/alert — Send emergency SMS to all contacts
-app.post('/api/alert', alertLimiter, async (req, res) => {
+app.post('/api/alert', requireAuth, alertLimiter, async (req, res) => {
   const { userName, contacts: rawContacts, latitude, longitude, triggerType } = req.body;
 
   if (!rawContacts?.length) {
@@ -100,7 +108,7 @@ app.post('/api/alert', alertLimiter, async (req, res) => {
 });
 
 // POST /api/alert/clear — Send all-clear SMS
-app.post('/api/alert/clear', clearLimiter, async (req, res) => {
+app.post('/api/alert/clear', requireAuth, clearLimiter, async (req, res) => {
   const { userName, contacts: rawContacts } = req.body;
 
   if (!rawContacts?.length) {
@@ -139,7 +147,7 @@ app.post('/api/alert/clear', clearLimiter, async (req, res) => {
 });
 
 // POST /api/ping — Store latest location for a session
-app.post('/api/ping', pingLimiter, (req, res) => {
+app.post('/api/ping', requireAuth, pingLimiter, (req, res) => {
   const { sessionId, latitude, longitude, timestamp } = req.body;
   if (sessionId) {
     locationStore.set(sessionId, { latitude, longitude, timestamp: timestamp || Date.now() });

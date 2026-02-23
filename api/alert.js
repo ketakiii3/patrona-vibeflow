@@ -1,6 +1,7 @@
 import twilio from 'twilio';
 import { setCorsHeaders } from './_lib/cors.js';
 import { isRateLimited, getClientIp } from './_lib/rateLimit.js';
+import { isAuthorized } from './_lib/auth.js';
 
 const twilioClient = process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN
   ? twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
@@ -23,6 +24,10 @@ export default async function handler(req, res) {
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  if (!isAuthorized(req)) {
+    return res.status(401).json({ success: false, error: 'Unauthorized' });
+  }
 
   // 5 alerts per 15 minutes per IP
   if (isRateLimited(getClientIp(req), 5, 15 * 60 * 1000)) {
