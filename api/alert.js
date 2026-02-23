@@ -2,6 +2,7 @@ import twilio from 'twilio';
 import { setCorsHeaders } from './_lib/cors.js';
 import { isRateLimited, getClientIp } from './_lib/rateLimit.js';
 import { isAuthorized } from './_lib/auth.js';
+import { validateAlertBody } from './_lib/validate.js';
 
 const twilioClient = process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN
   ? twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
@@ -34,11 +35,12 @@ export default async function handler(req, res) {
     return res.status(429).json({ success: false, error: 'Too many requests' });
   }
 
-  const { userName, contacts: rawContacts, latitude, longitude, triggerType } = req.body;
-
-  if (!rawContacts?.length) {
-    return res.status(400).json({ success: false, error: 'No contacts provided' });
+  const validationError = validateAlertBody(req.body);
+  if (validationError) {
+    return res.status(400).json({ success: false, error: validationError });
   }
+
+  const { userName, contacts: rawContacts, latitude, longitude, triggerType } = req.body;
 
   // Strip spaces/dashes from phone numbers — Twilio needs clean format like +16513848787
   const contacts = rawContacts.map(c => ({
@@ -52,11 +54,10 @@ export default async function handler(req, res) {
   const triggerLabel =
     triggerType === 'safeword' ? 'safe word detected'
     : triggerType === 'silence' ? 'no response to check-ins'
-    : triggerType === 'deviation' ? 'route deviation detected'
-    : triggerType;
+    : 'route deviation detected'; // triggerType is already validated to one of three values
 
   const message =
-    `🆘 Patrona Alert: ${userName} may need help.\n` +
+    `🆘 Patrona Alert: ${userName.trim()} may need help.\n` +
     `Reason: ${triggerLabel}.\n` +
     `Live location: ${mapsLink}\n` +
     `Track here: ${trackingUrl}\n` +

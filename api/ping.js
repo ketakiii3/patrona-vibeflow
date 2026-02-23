@@ -2,6 +2,7 @@ import { supabase } from './_lib/supabase.js';
 import { setCorsHeaders } from './_lib/cors.js';
 import { isRateLimited, getClientIp } from './_lib/rateLimit.js';
 import { isAuthorized } from './_lib/auth.js';
+import { validatePingBody } from './_lib/validate.js';
 
 export default async function handler(req, res) {
   setCorsHeaders(req, res);
@@ -16,6 +17,11 @@ export default async function handler(req, res) {
   // 120 pings per minute per IP (one every ~30s is normal, this allows bursts)
   if (isRateLimited(getClientIp(req), 120, 60 * 1000)) {
     return res.status(429).json({ success: false, error: 'Too many requests' });
+  }
+
+  const validationError = validatePingBody(req.body);
+  if (validationError) {
+    return res.status(400).json({ success: false, error: validationError });
   }
 
   const { sessionId, latitude, longitude, timestamp } = req.body;

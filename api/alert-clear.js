@@ -2,6 +2,7 @@ import twilio from 'twilio';
 import { setCorsHeaders } from './_lib/cors.js';
 import { isRateLimited, getClientIp } from './_lib/rateLimit.js';
 import { isAuthorized } from './_lib/auth.js';
+import { validateClearBody } from './_lib/validate.js';
 
 const twilioClient = process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN
   ? twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
@@ -22,11 +23,12 @@ export default async function handler(req, res) {
     return res.status(429).json({ success: false, error: 'Too many requests' });
   }
 
-  const { userName, contacts: rawContacts } = req.body;
-
-  if (!rawContacts?.length) {
-    return res.status(400).json({ success: false, error: 'No contacts provided' });
+  const validationError = validateClearBody(req.body);
+  if (validationError) {
+    return res.status(400).json({ success: false, error: validationError });
   }
+
+  const { userName, contacts: rawContacts } = req.body;
 
   const contacts = rawContacts.map(c => ({
     ...c,
@@ -34,7 +36,7 @@ export default async function handler(req, res) {
   }));
 
   const message =
-    `✅ Patrona Update: ${userName} has confirmed they are safe. ` +
+    `✅ Patrona Update: ${userName.trim()} has confirmed they are safe. ` +
     `Alert cleared. No further action needed.`;
 
   if (!twilioClient) {
