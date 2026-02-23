@@ -124,7 +124,7 @@ export default function App() {
                 theme={theme}
                 toggleTheme={toggleTheme}
                 onStartWalk={(session) => {
-                  setWalkSession({ ...session, startTime: Date.now() });
+                  setWalkSession({ ...session, startTime: Date.now(), sessionId: crypto.randomUUID() });
                   setWalkState('walking');
                 }}
               />

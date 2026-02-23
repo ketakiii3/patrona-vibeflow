@@ -31,7 +31,7 @@ export default function WalkScreen({ user, walkSession, onAlert, onArrived }) {
 
   // Set up location ping interval once on mount
   useEffect(() => {
-    const sessionId = walkSession?.startTime?.toString();
+    const sessionId = walkSession?.sessionId;
 
     pingIntervalRef.current = setInterval(() => {
       const pos = gpsRef.current;
