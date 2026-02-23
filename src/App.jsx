@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useAuth, SignIn } from '@clerk/clerk-react';
 import { hasUser, getUser } from './utils/storage';
 import Onboarding from './components/Onboarding';
 import HomeScreen from './components/HomeScreen';
@@ -11,7 +12,7 @@ import SettingsScreen from './components/SettingsScreen';
 import BottomNav from './components/BottomNav';
 
 export default function App() {
-  const [ready, setReady] = useState(false);
+  const { isLoaded, isSignedIn } = useAuth();
   const [isOnboarded, setIsOnboarded] = useState(false);
   const [user, setUser] = useState(null);
   const [tab, setTab] = useState('home'); // home | history | settings
@@ -32,16 +33,34 @@ export default function App() {
     window.location.pathname === '/track' ||
     new URLSearchParams(window.location.search).has('tracking');
 
+  // Load onboarding state from localStorage once Clerk confirms user is signed in
   useEffect(() => {
+    if (!isSignedIn) return;
     const onboarded = hasUser();
     setIsOnboarded(onboarded);
     if (onboarded) setUser(getUser());
-    setReady(true);
-  }, []);
+  }, [isSignedIn]);
 
-  if (!ready) return null;
+  // 1. TrackingPage — PUBLIC, no auth required (emergency contacts must see this)
   if (isTrackingPage) return <TrackingPage />;
 
+  // 2. Wait for Clerk to finish initialising
+  if (!isLoaded) return null;
+
+  // 3. Auth gate — show Clerk's built-in sign-in form
+  if (!isSignedIn) {
+    return (
+      <div style={{
+        position: 'fixed', inset: 0,
+        background: 'var(--bg)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <SignIn />
+      </div>
+    );
+  }
+
+  // 4. Onboarding gate — signed in but hasn't set up profile yet
   if (!isOnboarded) {
     return (
       <div style={{ position: 'relative', width: '100%', height: '100%', background: 'var(--bg)' }}>
@@ -55,6 +74,7 @@ export default function App() {
     );
   }
 
+  // 5. Main app — signed in + onboarded
   const isWalking = walkState !== 'idle';
 
   return (
