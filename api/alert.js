@@ -26,6 +26,11 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
+  const contentLength = parseInt(req.headers['content-length'] || '0', 10);
+  if (contentLength > 10 * 1024) {
+    return res.status(413).json({ success: false, error: 'Request too large' });
+  }
+
   if (!isAuthorized(req)) {
     return res.status(401).json({ success: false, error: 'Unauthorized' });
   }
