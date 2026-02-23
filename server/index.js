@@ -215,8 +215,8 @@ app.post('/api/ping', requireAuth, pingLimiter, (req, res) => {
   res.json({ success: true });
 });
 
-// GET /api/location/:sessionId — Get latest location for a session
-app.get('/api/location/:sessionId', (req, res) => {
+// GET /api/location/:sessionId — Get latest location for a session (auth required)
+app.get('/api/location/:sessionId', requireAuth, (req, res) => {
   const loc = locationStore.get(req.params.sessionId);
   if (!loc) {
     return res.status(404).json({ success: false, error: 'Session not found' });
