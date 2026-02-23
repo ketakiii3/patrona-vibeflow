@@ -3,6 +3,7 @@ import twilio from 'twilio';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
+import { verifyToken } from '@clerk/backend';
 
 dotenv.config();
 
@@ -21,12 +22,24 @@ const alertLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 5, standardHeade
 const clearLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false });
 const pingLimiter = rateLimit({ windowMs: 60 * 1000, max: 120, standardHeaders: true, legacyHeaders: false });
 
-function requireAuth(req, res, next) {
-  const secret = process.env.PATRONA_API_SECRET;
-  if (!secret) return next(); // Not configured — open in dev
-  const key = req.headers['x-api-key'] || req.query?.api_key;
-  if (key !== secret) return res.status(401).json({ success: false, error: 'Unauthorized' });
-  next();
+async function requireAuth(req, res, next) {
+  const secret = process.env.CLERK_SECRET_KEY;
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+    return next(); // Dev open mode
+  }
+  const authHeader = req.headers['authorization'];
+  if (!authHeader?.startsWith('Bearer ')) {
+    return res.status(401).json({ success: false, error: 'Unauthorized' });
+  }
+  try {
+    await verifyToken(authHeader.slice(7), { secretKey: secret });
+    next();
+  } catch {
+    return res.status(401).json({ success: false, error: 'Unauthorized' });
+  }
 }
 
 const VALID_TRIGGER_TYPES = new Set(['safeword', 'silence', 'deviation']);

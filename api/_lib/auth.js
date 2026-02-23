@@ -1,12 +1,23 @@
-const API_SECRET = process.env.PATRONA_API_SECRET;
+import { verifyToken } from '@clerk/backend';
+
+const CLERK_SECRET_KEY = process.env.CLERK_SECRET_KEY;
 
 /**
- * Returns true if the request carries a valid API secret.
- * Accepts it via X-Api-Key header or api_key query param.
+ * Returns true if the request carries a valid Clerk JWT.
+ * Falls back to open mode in dev when CLERK_SECRET_KEY is not set.
  */
-export function isAuthorized(req) {
-  if (!API_SECRET) return true; // Secret not configured — open in dev
-  const header = req.headers?.['x-api-key'];
-  const query = req.query?.api_key;
-  return header === API_SECRET || query === API_SECRET;
+export async function isAuthorized(req) {
+  if (!CLERK_SECRET_KEY) {
+    if (process.env.NODE_ENV === 'production') return false; // Never open in production
+    return true; // Dev open mode
+  }
+  const authHeader = req.headers?.['authorization'];
+  if (!authHeader?.startsWith('Bearer ')) return false;
+  const token = authHeader.slice(7);
+  try {
+    await verifyToken(token, { secretKey: CLERK_SECRET_KEY });
+    return true;
+  } catch {
+    return false;
+  }
 }
