@@ -131,7 +131,7 @@ app.post('/api/alert', requireAuth, alertLimiter, async (req, res) => {
     res.json({ success: true, messagesSent: sent, failed: failed.length });
   } catch (error) {
     console.error('[Patrona] Twilio error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: 'Failed to send alert' });
   }
 });
 
@@ -174,7 +174,7 @@ app.post('/api/alert/clear', requireAuth, clearLimiter, async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     console.error('[Patrona] All-clear error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: 'Failed to send all-clear' });
   }
 });
 

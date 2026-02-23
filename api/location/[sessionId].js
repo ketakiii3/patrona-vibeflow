@@ -27,6 +27,6 @@ export default async function handler(req, res) {
     res.json({ success: true, ...data });
   } catch (error) {
     console.error('[Patrona] Location fetch error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch location' });
   }
 }

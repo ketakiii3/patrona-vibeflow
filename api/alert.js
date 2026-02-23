@@ -89,6 +89,6 @@ export default async function handler(req, res) {
     res.json({ success: true, messagesSent: sent, failed: failed.length });
   } catch (error) {
     console.error('[Patrona] Twilio error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: 'Failed to send alert' });
   }
 }

@@ -57,6 +57,6 @@ export default async function handler(req, res) {
     res.json({ success: true });
   } catch (error) {
     console.error('[Patrona] All-clear error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: 'Failed to send all-clear' });
   }
 }
