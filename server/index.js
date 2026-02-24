@@ -104,8 +104,11 @@ app.post('/api/alert', requireAuth, alertLimiter, async (req, res) => {
   const contactsError = validateContacts(rawContacts);
   if (contactsError) return res.status(400).json({ success: false, error: contactsError });
 
-  const coordsError = validateCoords(latitude, longitude);
-  if (coordsError) return res.status(400).json({ success: false, error: coordsError });
+  // Coords are optional — alert still sends without location
+  if (latitude !== undefined && latitude !== null) {
+    const coordsError = validateCoords(latitude, longitude);
+    if (coordsError) return res.status(400).json({ success: false, error: coordsError });
+  }
 
   if (triggerType && !VALID_TRIGGER_TYPES.has(triggerType)) {
     return res.status(400).json({ success: false, error: 'triggerType must be safeword, silence, or deviation' });
@@ -116,8 +119,9 @@ app.post('/api/alert', requireAuth, alertLimiter, async (req, res) => {
     phone: c.phone.replace(/[\s\-\(\)]/g, ''),
   }));
 
-  const trackingUrl = buildTrackingUrl(userName, latitude, longitude, Date.now());
-  const mapsLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
+  const hasLocation = typeof latitude === 'number' && typeof longitude === 'number';
+  const trackingUrl = hasLocation ? buildTrackingUrl(userName, latitude, longitude, Date.now()) : null;
+  const mapsLink = hasLocation ? `https://www.google.com/maps?q=${latitude},${longitude}` : null;
 
   const triggerLabel =
     triggerType === 'safeword' ? 'safe word detected'
@@ -127,8 +131,7 @@ app.post('/api/alert', requireAuth, alertLimiter, async (req, res) => {
   const message =
     `Patrona Alert: ${userName.trim()} may need help.\n` +
     `Reason: ${triggerLabel}.\n` +
-    `Live location: ${mapsLink}\n` +
-    `Track here: ${trackingUrl}\n` +
+    (hasLocation ? `Live location: ${mapsLink}\nTrack here: ${trackingUrl}\n` : `Location unavailable.\n`) +
     `Sent by Patrona safety system.`;
 
   try {

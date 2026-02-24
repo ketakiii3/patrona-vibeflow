@@ -23,11 +23,16 @@ export function validateAlertBody(body) {
     }
   }
 
-  if (typeof latitude !== 'number' || latitude < -90 || latitude > 90) {
-    return 'latitude must be a number between -90 and 90';
+  // Coords are optional — alert still sends without location
+  if (latitude !== undefined && latitude !== null) {
+    if (typeof latitude !== 'number' || latitude < -90 || latitude > 90) {
+      return 'latitude must be a number between -90 and 90';
+    }
   }
-  if (typeof longitude !== 'number' || longitude < -180 || longitude > 180) {
-    return 'longitude must be a number between -180 and 180';
+  if (longitude !== undefined && longitude !== null) {
+    if (typeof longitude !== 'number' || longitude < -180 || longitude > 180) {
+      return 'longitude must be a number between -180 and 180';
+    }
   }
 
   if (triggerType && !VALID_TRIGGER_TYPES.has(triggerType)) {
