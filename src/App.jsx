@@ -33,14 +33,24 @@ export default function App() {
     window.location.pathname === '/track' ||
     new URLSearchParams(window.location.search).has('tracking');
 
-  // Load onboarding state from localStorage once Clerk confirms user is signed in
+  // Sync storage scope and onboarding state with Clerk auth
   useEffect(() => {
-    if (!isSignedIn || !userId) return;
-    setStorageUserId(userId); // Scope all storage to this Clerk user
+    if (!isLoaded) return;
+
+    if (!isSignedIn || !userId) {
+      // Signed out — clear storage scope and reset state
+      setStorageUserId('');
+      setUser(null);
+      setIsOnboarded(false);
+      return;
+    }
+
+    // Signed in — scope storage to this Clerk user and load their data
+    setStorageUserId(userId);
     const onboarded = hasUser();
     setIsOnboarded(onboarded);
     if (onboarded) setUser(getUser());
-  }, [isSignedIn, userId]);
+  }, [isLoaded, isSignedIn, userId]);
 
   // 1. TrackingPage — PUBLIC, no auth required (emergency contacts must see this)
   if (isTrackingPage) return <TrackingPage />;

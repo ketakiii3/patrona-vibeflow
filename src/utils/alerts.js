@@ -16,9 +16,14 @@ export async function sendEmergencyAlert({ userName, contacts, latitude, longitu
       headers: await authHeaders(getToken),
       body: JSON.stringify({ userName, contacts, latitude, longitude, triggerType }),
     });
-    return await response.json();
+    const data = await response.json();
+    if (!response.ok) {
+      console.error('[Alert] API error:', response.status, data);
+      return { success: false, error: data.error || `HTTP ${response.status}` };
+    }
+    return data;
   } catch (error) {
-    console.error('Failed to send alert:', error);
+    console.error('[Alert] Network error:', error);
     return { success: false, error: error.message };
   }
 }
@@ -30,9 +35,14 @@ export async function sendAllClear({ userName, contacts, getToken }) {
       headers: await authHeaders(getToken),
       body: JSON.stringify({ userName, contacts }),
     });
-    return await response.json();
+    const data = await response.json();
+    if (!response.ok) {
+      console.error('[All-clear] API error:', response.status, data);
+      return { success: false, error: data.error || `HTTP ${response.status}` };
+    }
+    return data;
   } catch (error) {
-    console.error('Failed to send all-clear:', error);
+    console.error('[All-clear] Network error:', error);
     return { success: false, error: error.message };
   }
 }
