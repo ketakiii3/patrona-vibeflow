@@ -16,6 +16,20 @@ function buildTrackingUrl(name, latitude, longitude, timestamp) {
   return `${base}?${params.toString()}`;
 }
 
+async function reverseGeocode(lat, lng) {
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`;
+    const r = await fetch(url, {
+      headers: { 'User-Agent': 'Patrona Safety App (safety-companion)' },
+      signal: AbortSignal.timeout(4000),
+    });
+    const data = await r.json();
+    return data.display_name || null;
+  } catch {
+    return null;
+  }
+}
+
 export default async function handler(req, res) {
   setCorsHeaders(req, res);
 
@@ -55,11 +69,17 @@ export default async function handler(req, res) {
     : triggerType === 'silence' ? 'no response to check-ins'
     : 'route deviation detected';
 
-  // Coordinates sent as plain text (no URLs) to avoid SMS carrier/provider URL restrictions
+  const address = hasLocation ? await reverseGeocode(latitude, longitude) : null;
+  const locationLine = hasLocation
+    ? (address
+        ? `Location: ${address}\n`
+        : `Location: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}\nSearch coords in Google Maps to find them.\n`)
+    : `Location unavailable.\n`;
+
   const message =
     `Patrona Alert: ${userName.trim()} may need help.\n` +
     `Reason: ${triggerLabel}.\n` +
-    (hasLocation ? `Location: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}\nSearch coords in Google Maps to find them.\n` : `Location unavailable.\n`) +
+    locationLine +
     `Sent by Patrona safety system.`;
 
   try {
