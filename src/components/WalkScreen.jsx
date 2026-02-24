@@ -63,7 +63,7 @@ export default function WalkScreen({ user, walkSession, onAlert, onArrived }) {
           triggerType,
           getToken,
         });
-        console.log('[Alert] Result:', result);
+        console.log('[Alert] Result:', JSON.stringify(result));
       } else {
         console.warn('[Alert] No contacts — SMS skipped');
       }
