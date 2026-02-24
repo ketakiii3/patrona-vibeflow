@@ -71,11 +71,12 @@ export default async function handler(req, res) {
     const sent = results.filter((r) => r.status === 'fulfilled').length;
     const failed = results.filter((r) => r.status === 'rejected');
 
+    const failedReasons = failed.map((f) => f.reason?.message || String(f.reason));
     if (failed.length) {
-      console.error('[Patrona] Some messages failed:', failed.map((f) => f.reason));
+      console.error('[Patrona] Some messages failed:', failedReasons);
     }
 
-    res.json({ success: true, messagesSent: sent, failed: failed.length });
+    res.json({ success: true, messagesSent: sent, failed: failed.length, errors: failedReasons });
   } catch (error) {
     console.error('[Patrona] SMS error:', error);
     res.status(500).json({ success: false, error: 'Failed to send alert' });
