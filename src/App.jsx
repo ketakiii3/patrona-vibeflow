@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth, SignIn } from '@clerk/clerk-react';
-import { hasUser, getUser } from './utils/storage';
+import { hasUser, getUser, setStorageUserId } from './utils/storage';
 import Onboarding from './components/Onboarding';
 import HomeScreen from './components/HomeScreen';
 import WalkScreen from './components/WalkScreen';
@@ -12,7 +12,7 @@ import SettingsScreen from './components/SettingsScreen';
 import BottomNav from './components/BottomNav';
 
 export default function App() {
-  const { isLoaded, isSignedIn } = useAuth();
+  const { isLoaded, isSignedIn, userId } = useAuth();
   const [isOnboarded, setIsOnboarded] = useState(false);
   const [user, setUser] = useState(null);
   const [tab, setTab] = useState('home'); // home | history | settings
@@ -35,11 +35,12 @@ export default function App() {
 
   // Load onboarding state from localStorage once Clerk confirms user is signed in
   useEffect(() => {
-    if (!isSignedIn) return;
+    if (!isSignedIn || !userId) return;
+    setStorageUserId(userId); // Scope all storage to this Clerk user
     const onboarded = hasUser();
     setIsOnboarded(onboarded);
     if (onboarded) setUser(getUser());
-  }, [isSignedIn]);
+  }, [isSignedIn, userId]);
 
   // 1. TrackingPage — PUBLIC, no auth required (emergency contacts must see this)
   if (isTrackingPage) return <TrackingPage />;
