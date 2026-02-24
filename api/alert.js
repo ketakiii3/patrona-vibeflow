@@ -49,18 +49,17 @@ export default async function handler(req, res) {
   }));
 
   const hasLocation = typeof latitude === 'number' && typeof longitude === 'number';
-  const trackingUrl = hasLocation ? buildTrackingUrl(userName, latitude, longitude, Date.now()) : null;
-  const mapsLink = hasLocation ? `https://www.google.com/maps?q=${latitude},${longitude}` : null;
 
   const triggerLabel =
     triggerType === 'safeword' ? 'safe word detected'
     : triggerType === 'silence' ? 'no response to check-ins'
     : 'route deviation detected';
 
+  // Coordinates sent as plain text (no URLs) to avoid SMS carrier/provider URL restrictions
   const message =
     `Patrona Alert: ${userName.trim()} may need help.\n` +
     `Reason: ${triggerLabel}.\n` +
-    (hasLocation ? `Live location: ${mapsLink}\nTrack here: ${trackingUrl}\n` : `Location unavailable.\n`) +
+    (hasLocation ? `Location: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}\nSearch coords in Google Maps to find them.\n` : `Location unavailable.\n`) +
     `Sent by Patrona safety system.`;
 
   try {
