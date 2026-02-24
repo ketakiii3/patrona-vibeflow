@@ -54,14 +54,18 @@ export default function WalkScreen({ user, walkSession, onAlert, onArrived }) {
       hasAlertedRef.current = true;
 
       const pos = gpsRef.current; // use ref so we always get the latest position
+      console.log('[Alert] Triggered:', triggerType, '| contacts:', walkSession?.contacts?.length, '| gps:', !!pos);
       if (walkSession?.contacts?.length) {
-        await sendEmergencyAlert({
+        const result = await sendEmergencyAlert({
           userName: user?.name || 'Someone',
           contacts: walkSession.contacts,
           ...(pos ? { latitude: pos.lat, longitude: pos.lng } : {}),
           triggerType,
           getToken,
         });
+        console.log('[Alert] Result:', result);
+      } else {
+        console.warn('[Alert] No contacts — SMS skipped');
       }
       onAlert();
     },
