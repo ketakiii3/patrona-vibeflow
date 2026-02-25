@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { useAuth } from '@clerk/clerk-react';
+import { useAction, useMutation } from 'convex/react';
+import { api } from '../../convex/_generated/api';
 import useGPS from '../hooks/useGPS';
 import useSafetyMonitor from '../hooks/useSafetyMonitor';
 import useVoiceSession from '../hooks/useVoiceSession';
-import { sendEmergencyAlert, pingLocation } from '../utils/alerts';
 import { saveSession } from '../utils/storage';
 
 function useElapsed(startTime) {
@@ -18,9 +18,10 @@ function useElapsed(startTime) {
 }
 
 export default function WalkScreen({ user, walkSession, onAlert, onArrived }) {
-  const { getToken } = useAuth();
-  const getTokenRef = useRef(getToken);
-  useEffect(() => { getTokenRef.current = getToken; }, [getToken]);
+  const sendAlert = useAction(api.alerts.sendEmergencyAlert);
+  const upsertPing = useMutation(api.locationPings.upsertPing);
+  const upsertPingRef = useRef(upsertPing);
+  useEffect(() => { upsertPingRef.current = upsertPing; }, [upsertPing]);
 
   const timer = useElapsed(walkSession?.startTime || Date.now());
   const hasAlertedRef = useRef(false);
@@ -29,19 +30,22 @@ export default function WalkScreen({ user, walkSession, onAlert, onArrived }) {
   const gps = useGPS(true);
   const gpsRef = useRef(null);
 
-  // Keep a ref to latest position so the interval always sees fresh data
   useEffect(() => {
     gpsRef.current = gps.position;
   }, [gps.position]);
 
-  // Set up location ping interval once on mount
   useEffect(() => {
     const sessionId = walkSession?.sessionId;
 
     pingIntervalRef.current = setInterval(() => {
       const pos = gpsRef.current;
       if (pos) {
-        pingLocation({ sessionId, latitude: pos.lat, longitude: pos.lng, getToken: getTokenRef.current });
+        upsertPingRef.current({
+          sessionId,
+          latitude: pos.lat,
+          longitude: pos.lng,
+          timestamp: Date.now(),
+        }).catch(() => {});
       }
     }, 10000);
 
@@ -53,23 +57,26 @@ export default function WalkScreen({ user, walkSession, onAlert, onArrived }) {
       if (hasAlertedRef.current) return;
       hasAlertedRef.current = true;
 
-      const pos = gpsRef.current; // use ref so we always get the latest position
+      const pos = gpsRef.current;
       console.log('[Alert] Triggered:', triggerType, '| contacts:', walkSession?.contacts?.length, '| gps:', !!pos);
       if (walkSession?.contacts?.length) {
-        const result = await sendEmergencyAlert({
-          userName: user?.name || 'Someone',
-          contacts: walkSession.contacts,
-          ...(pos ? { latitude: pos.lat, longitude: pos.lng } : {}),
-          triggerType,
-          getToken,
-        });
-        console.log('[Alert] Result:', JSON.stringify(result));
+        try {
+          const result = await sendAlert({
+            userName: user?.name || 'Someone',
+            contacts: walkSession.contacts,
+            ...(pos ? { latitude: pos.lat, longitude: pos.lng } : {}),
+            triggerType,
+          });
+          console.log('[Alert] Result:', JSON.stringify(result));
+        } catch (err) {
+          console.error('[Alert] Error:', err);
+        }
       } else {
         console.warn('[Alert] No contacts — SMS skipped');
       }
       onAlert();
     },
-    [gps.position, walkSession, user, onAlert]
+    [gps.position, walkSession, user, onAlert, sendAlert]
   );
 
   const safety = useSafetyMonitor({

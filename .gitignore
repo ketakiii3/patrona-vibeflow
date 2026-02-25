@@ -3,7 +3,5 @@ dist
 .env
 .env.local
 .env.production
-server/.env
-server/node_modules
 .DS_Store
 *.log

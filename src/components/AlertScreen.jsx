@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '@clerk/clerk-react';
-import { sendAllClear } from '../utils/alerts';
+import { useAction } from 'convex/react';
+import { api } from '../../convex/_generated/api';
 import { saveSession } from '../utils/storage';
 
 function useElapsed(startTime) {
@@ -15,7 +15,7 @@ function useElapsed(startTime) {
 }
 
 export default function AlertScreen({ user, walkSession, onSafe, onEndWalk }) {
-  const { getToken } = useAuth();
+  const sendAllClear = useAction(api.alerts.sendAllClear);
   const [isSending, setIsSending] = useState(false);
   const [cleared, setCleared] = useState(false);
   const timer = useElapsed(walkSession?.startTime || Date.now());
@@ -27,7 +27,6 @@ export default function AlertScreen({ user, walkSession, onSafe, onEndWalk }) {
         await sendAllClear({
           userName: user?.name || 'Someone',
           contacts: walkSession.contacts,
-          getToken,
         });
       }
     } catch {

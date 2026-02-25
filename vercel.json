@@ -1,7 +1,0 @@
-{
-  "rewrites": [
-    { "source": "/api/alert/clear", "destination": "/api/alert-clear" },
-    { "source": "/api/location/:sessionId", "destination": "/api/location/[sessionId]" },
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
-  ]
-}

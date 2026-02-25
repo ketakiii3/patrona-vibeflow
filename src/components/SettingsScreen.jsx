@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useAuth } from '@clerk/clerk-react';
+import { useMutation } from 'convex/react';
+import { api } from '../../convex/_generated/api';
 import { saveUser } from '../utils/storage';
-import { saveUserToCloud } from '../utils/userApi';
 
 function Section({ title, children }) {
   return (
@@ -13,14 +13,14 @@ function Section({ title, children }) {
 }
 
 export default function SettingsScreen({ user, theme, toggleTheme, onUserUpdate }) {
-  const { getToken } = useAuth();
-  const [editing, setEditing] = useState(null); // null | 'profile' | 'contacts' | 'safeword'
+  const saveUserToConvex = useMutation(api.users.saveUser);
+  const [editing, setEditing] = useState(null);
   const [localUser, setLocalUser] = useState({ ...user });
   const [saved, setSaved] = useState(false);
 
   const handleSave = () => {
     saveUser(localUser);
-    saveUserToCloud(localUser, getToken); // fire-and-forget
+    saveUserToConvex(localUser).catch(() => {});
     onUserUpdate(localUser);
     setSaved(true);
     setTimeout(() => {

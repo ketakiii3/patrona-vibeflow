@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useAuth } from '@clerk/clerk-react';
+import { useMutation } from 'convex/react';
+import { api } from '../../convex/_generated/api';
 import { saveUser } from '../utils/storage';
-import { saveUserToCloud } from '../utils/userApi';
 
 const STEP_META = [
   { title: "Let's get you set up", subtitle: 'Takes about a minute' },
@@ -10,7 +10,7 @@ const STEP_META = [
 ];
 
 export default function Onboarding({ onComplete }) {
-  const { getToken } = useAuth();
+  const saveUserToConvex = useMutation(api.users.saveUser);
   const [step, setStep] = useState(1);
   const [userData, setUserData] = useState({
     name: '',
@@ -47,7 +47,7 @@ export default function Onboarding({ onComplete }) {
 
   const handleComplete = async () => {
     saveUser(userData);
-    saveUserToCloud(userData, getToken); // fire-and-forget
+    saveUserToConvex(userData).catch(() => {});
     onComplete(userData);
   };
 
